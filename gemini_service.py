@@ -17,7 +17,35 @@ class GeminiService:
         self.timeout = timeout
         self._client_ready = False
         self.model = None
+        self.safety_settings = self._get_safety_settings()
         self._init_client()
+
+    def _get_safety_settings(self) -> list:
+        """Configure safety settings for Gemini API."""
+        if genai is None:
+            return []
+        try:
+            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            return [
+                {
+                    "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                },
+                {
+                    "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                },
+                {
+                    "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                },
+                {
+                    "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                }
+            ]
+        except Exception:
+            return []
 
     def _init_client(self) -> None:
         if self.api_key and genai is not None:
@@ -29,6 +57,7 @@ class GeminiService:
                         "temperature": 0.7,
                         "response_mime_type": "application/json",
                     },
+                    safety_settings=self.safety_settings
                 )
                 self._client_ready = True
             except Exception:
@@ -56,6 +85,7 @@ class GeminiService:
                         "temperature": temperature,
                         "response_mime_type": "application/json",
                     },
+                    safety_settings=self.safety_settings
                 )
                 text = getattr(resp, "text", None)
                 if not text and hasattr(resp, "candidates"):
