@@ -97,16 +97,12 @@ class TestGeminiService:
             ]
         }
         
-        performance = {
-            "crashes": 2,
-            "avg_speed": 110,
-            "completion_time": 45
-        }
+        performance = "crashes: 2, avg_speed: 110, completion_time: 45"
         
-        track = gemini_service.generate_adaptive_track(
+        track = gemini_service.adapt_track(
             performance_summary=performance,
-            environment="desert",
-            base_difficulty="medium"
+            base_difficulty="medium",
+            environment="desert"
         )
         
         assert isinstance(track, dict)
@@ -281,16 +277,18 @@ class TestErrorHandling:
     """Tests for error handling in services."""
     
     @patch.dict('os.environ', {'GOOGLE_API_KEY': 'test-key'})
-    def test_gemini_api_timeout(self):
+    @patch('gemini_service.GeminiService._call_json')
+    def test_gemini_api_timeout(self, mock_call):
         """Test handling of API timeout."""
         from gemini_service import GeminiService
         
         service = GeminiService()
+        mock_call.return_value = None
         
-        with patch.object(service, '_post_generate', side_effect=Exception("Timeout")):
-            # Should not crash, should use fallback
-            track = service.generate_track("medium", "city")
-            assert isinstance(track, dict)
+        # Should not crash, should use fallback
+        track = service.generate_track("medium", "city")
+        assert isinstance(track, dict)
+        assert "segments" in track
     
     @patch.dict('os.environ', {'OLLAMA_HOST': 'http://localhost:11434'})
     def test_ollama_connection_error(self):
